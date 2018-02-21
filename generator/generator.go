@@ -1914,7 +1914,9 @@ func (g *Generator) generateMessage(message *Descriptor) {
 
 		g.PrintComments(fmt.Sprintf("%s,%d,%d", message.path, messageFieldPath, i))
 		g.P(fieldName, "\t", typename, "\t`", tag, "`")
-		g.RecordTypeUse(field.GetTypeName())
+		if typeconverter == nil || typeconverter.RecordTypeUse() {
+			g.RecordTypeUse(field.GetTypeName())
+		}
 	}
 	if len(message.ExtensionRange) > 0 {
 		g.P(g.Pkg["proto"], ".XXX_InternalExtensions `json:\"-\"`")

@@ -14,6 +14,7 @@ type TypeConverter interface {
 	EmptyValue() string
 	GenerateImport(g *Generator, fieldname string, retName string, varName string)
 	GenerateExport(g *Generator, fieldname string, structName string, varName string)
+	RecordTypeUse() bool
 }
 
 type TypeImport struct {
