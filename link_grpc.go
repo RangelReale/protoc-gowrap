@@ -31,4 +31,4 @@
 
 package protoc_gowrap
 
-import _ "github.com/RangelReale/protoc-gowrap/grpc"
+//import _ "github.com/RangelReale/protoc-gowrap/grpc"

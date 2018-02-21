@@ -12,7 +12,7 @@ type TypeConverter interface {
 	GoType() (typ string, wire string)
 	Imports() []TypeImport
 	EmptyValue() string
-	GenerateImport(g *Generator, fieldname string, structName string, varName string)
+	GenerateImport(g *Generator, fieldname string, retName string, varName string)
 	GenerateExport(g *Generator, fieldname string, structName string, varName string)
 }
 

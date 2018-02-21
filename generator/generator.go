@@ -2557,18 +2557,21 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	// Import
 	g.P()
 	g.In()
-	g.P("func (m *", ccTypeName, ") Import(source *"+ccBaseTypeName+") error {")
+	//g.P("func (m *", ccTypeName, ") Import(source *"+ccBaseTypeName+") error {")
+	g.P("func ", ccTypeName, "_Import(source *"+ccBaseTypeName+") (*", ccTypeName, ", error) {")
+	g.P("ret := &" + ccTypeName + "{}")
+
 	for _, field := range message.Field {
 		fn := fieldNames[field]
 
 		_, _, typeconverter := g.GoType(message, field)
 		if typeconverter != nil {
-			typeconverter.GenerateImport(g, fn, "m", "source")
+			typeconverter.GenerateImport(g, fn, "ret", "source")
 		} else {
-			g.P("m." + fn + " = source." + fn)
+			g.P("ret." + fn + " = source." + fn)
 		}
 	}
-	g.P("return nil")
+	g.P("return ret, nil")
 	g.P("}")
 	g.Out()
 	g.P()
