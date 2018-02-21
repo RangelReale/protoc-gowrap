@@ -29,6 +29,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-package main
+package protoc_gowrap
 
 import _ "github.com/RangelReale/protoc-gowrap/grpc"
