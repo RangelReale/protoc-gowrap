@@ -39,7 +39,6 @@ package generator
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"fmt"
 	"go/parser"
 	"go/printer"
@@ -361,6 +360,7 @@ type getterSymbol struct {
 func (ms *messageSymbol) GenerateAlias(g *Generator, pkg string) {
 	remoteSym := pkg + "." + ms.sym
 
+	/*
 	g.P("type ", ms.sym, " ", remoteSym)
 	g.P("func (m *", ms.sym, ") Reset() { (*", remoteSym, ")(m).Reset() }")
 	g.P("func (m *", ms.sym, ") String() string { return (*", remoteSym, ")(m).String() }")
@@ -410,6 +410,7 @@ func (ms *messageSymbol) GenerateAlias(g *Generator, pkg string) {
 		g.P("return size(m0)")
 		g.P("}")
 	}
+	*/
 	for _, get := range ms.getters {
 
 		if get.typeName != "" {
@@ -777,8 +778,8 @@ func (g *Generator) SetPackageNames() {
 	// Register the support package names. They might collide with the
 	// name of a package we import.
 	g.Pkg = map[string]string{
-		"fmt":   RegisterUniquePackageName("fmt", nil),
-		"math":  RegisterUniquePackageName("math", nil),
+		//"fmt":   RegisterUniquePackageName("fmt", nil),
+		//"math":  RegisterUniquePackageName("math", nil),
 		"proto": RegisterUniquePackageName("proto", nil),
 	}
 
@@ -1201,7 +1202,7 @@ func (g *Generator) generate(file *FileDescriptor) {
 	// Run the plugins before the imports so we know which imports are necessary.
 	g.runPlugins(file)
 
-	g.generateFileDescriptor(file)
+	//g.generateFileDescriptor(file)
 
 	// Generate header and imports last, though they appear first in the output.
 	rem := g.Buffer
@@ -1319,9 +1320,11 @@ func (g *Generator) generateImports() {
 	// We almost always need a proto import.  Rather than computing when we
 	// do, which is tricky when there's a plugin, just import it and
 	// reference it later. The same argument applies to the fmt and math packages.
-	g.P("import " + g.Pkg["proto"] + " " + strconv.Quote(g.ImportPrefix+"github.com/golang/protobuf/proto"))
-	g.P("import " + g.Pkg["fmt"] + ` "fmt"`)
-	g.P("import " + g.Pkg["math"] + ` "math"`)
+	if g.file.index == 0 {
+		g.P("import " + g.Pkg["proto"] + " " + strconv.Quote(g.ImportPrefix+"github.com/golang/protobuf/proto"))
+	}
+	//g.P("import " + g.Pkg["fmt"] + ` "fmt"`)
+	//g.P("import " + g.Pkg["math"] + ` "math"`)
 	for i, s := range g.file.Dependency {
 		fd := g.fileByName(s)
 		// Do not import our own package.
@@ -1355,10 +1358,10 @@ func (g *Generator) generateImports() {
 		p.GenerateImports(g.file)
 		g.P()
 	}
-	g.P("// Reference imports to suppress errors if they are not otherwise used.")
-	g.P("var _ = ", g.Pkg["proto"], ".Marshal")
-	g.P("var _ = ", g.Pkg["fmt"], ".Errorf")
-	g.P("var _ = ", g.Pkg["math"], ".Inf")
+	//g.P("// Reference imports to suppress errors if they are not otherwise used.")
+	//g.P("var _ = ", g.Pkg["proto"], ".Marshal")
+	//g.P("var _ = ", g.Pkg["fmt"], ".Errorf")
+	//g.P("var _ = ", g.Pkg["math"], ".Inf")
 	g.P()
 }
 
@@ -1730,7 +1733,9 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	// The full type name
 	typeName := message.TypeName()
 	// The full type name, CamelCased.
-	ccTypeName := CamelCaseSlice(typeName)
+	ccBaseTypeName := CamelCaseSlice(typeName)
+	// The wrapped type name
+	ccTypeName := fmt.Sprintf("%s_GW", ccBaseTypeName)
 
 	usedNames := make(map[string]bool)
 	for _, n := range methodNames {
@@ -1749,6 +1754,7 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	g.PrintComments(message.path)
 	g.P("type ", ccTypeName, " struct {")
 	g.In()
+	//**//g.P("source", "\t", "*", ccBaseTypeName)
 
 	// allocNames finds a conflict-free variation of the given strings,
 	// consistently mutating their suffixes.
@@ -1780,9 +1786,9 @@ func (g *Generator) generateMessage(message *Descriptor) {
 		base := CamelCase(*field.Name)
 		ns := allocNames(base, "Get"+base)
 		fieldName, fieldGetterName := ns[0], ns[1]
-		typename, wiretype := g.GoType(message, field)
+		typename, _ := g.GoType(message, field)
 		jsonName := *field.Name
-		tag := fmt.Sprintf("protobuf:%s json:%q", g.goTag(message, field, wiretype), jsonName+",omitempty")
+		tag := fmt.Sprintf("json:%q", jsonName+",omitempty")
 
 		fieldNames[field] = fieldName
 		fieldGetterNames[field] = fieldGetterName
@@ -1881,6 +1887,7 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	if !message.proto3() {
 		g.P("XXX_unrecognized\t[]byte `json:\"-\"`")
 	}
+
 	g.Out()
 	g.P("}")
 
@@ -1902,6 +1909,7 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	}
 
 	// Reset, String and ProtoMessage methods.
+	/*
 	g.P("func (m *", ccTypeName, ") Reset() { *m = ", ccTypeName, "{} }")
 	g.P("func (m *", ccTypeName, ") String() string { return ", g.Pkg["proto"], ".CompactTextString(m) }")
 	g.P("func (*", ccTypeName, ") ProtoMessage() {}")
@@ -1915,6 +1923,7 @@ func (g *Generator) generateMessage(message *Descriptor) {
 	if message.file.GetPackage() == "google.protobuf" && wellKnownTypes[message.GetName()] {
 		g.P("func (*", ccTypeName, `) XXX_WellKnownType() string { return "`, message.GetName(), `" }`)
 	}
+	*/
 
 	// Extension support methods
 	var hasExtensions, isMessageSet bool
@@ -2504,12 +2513,32 @@ func (g *Generator) generateMessage(message *Descriptor) {
 		g.generateExtension(ext)
 	}
 
+	// Import
+	g.P()
+	g.In()
+	g.P("func (m *", ccTypeName, ") Import(source *" + ccBaseTypeName + ") {")
+	g.P("}")
+	g.Out()
+	g.P()
+
+	// Export
+	g.P()
+	g.In()
+	g.P("func (m *", ccTypeName, ") Export() *" + ccBaseTypeName + " {")
+	g.In()
+	g.P("return nil")
+	g.Out()
+	g.P("}")
+	g.Out()
+	g.P()
+
+
 	fullName := strings.Join(message.TypeName(), ".")
 	if g.file.Package != nil {
 		fullName = *g.file.Package + "." + fullName
 	}
 
-	g.addInitf("%s.RegisterType((*%s)(nil), %q)", g.Pkg["proto"], ccTypeName, fullName)
+	//g.addInitf("%s.RegisterType((*%s)(nil), %q)", g.Pkg["proto"], ccTypeName, fullName)
 }
 
 var escapeChars = [256]byte{
@@ -2659,6 +2688,7 @@ func (g *Generator) generateInitFunction() {
 	g.init = nil
 }
 
+/*
 func (g *Generator) generateFileDescriptor(file *FileDescriptor) {
 	// Make a copy and trim source_code_info data.
 	// TODO: Trim this more when we know exactly what we need.
@@ -2699,6 +2729,7 @@ func (g *Generator) generateFileDescriptor(file *FileDescriptor) {
 	g.Out()
 	g.P("}")
 }
+*/
 
 func (g *Generator) generateEnumRegistration(enum *EnumDescriptor) {
 	// // We always print the full (proto-world) package name here.

@@ -96,7 +96,13 @@ func (g *grpc) objectNamed(name string) generator.Object {
 
 // Given a type name defined in a .proto, return its name as we will print it.
 func (g *grpc) typeName(str string) string {
-	return g.gen.TypeName(g.objectNamed(str))
+	obj := g.objectNamed(str)
+
+	if g.gen.DefaultPackageName(obj) == "" {
+		return fmt.Sprintf("%s_GW", g.gen.TypeName(obj))
+	} else {
+		return g.gen.TypeName(obj)
+	}
 }
 
 // P forwards to g.gen.P.
@@ -152,7 +158,8 @@ func (g *grpc) generateService(file *generator.FileDescriptor, service *pb.Servi
 	if pkg := file.GetPackage(); pkg != "" {
 		fullServName = pkg + "." + fullServName
 	}
-	servName := generator.CamelCase(origServName)
+	baseServName := generator.CamelCase(origServName)
+	servName := fmt.Sprintf("%s_GW", baseServName)
 
 	g.P()
 	g.P("// Client API for ", servName, " service")
